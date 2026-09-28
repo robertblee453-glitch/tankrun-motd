@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tank Run - MOTD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 2. 页面整体布局 */
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: flex-start; 
+            align-items: center;         
+            padding-left: 5vw;           
+            overflow: hidden;
+            background-color: #050508; /* 纯黑备用底色 */
+        }
+
+        /* =========================================
+           3. 幻灯片背景区（新增）
+           ========================================= */
+        .bg-slideshow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1; /* 放在最底层 */
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 1s ease-in-out; /* 1.5秒平滑过渡 */
+            /* 注意：这里去掉了不稳定的 box-shadow 遮罩 */
+        }
+
+        .slide.active {
+            opacity: 1; 
+        }
+
+        /* =========================================
+           独立暗色遮罩层（修复了只遮挡一半的BUG）
+           ========================================= */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 100); /* 0.45 是暗度，数字越大越黑 */
+            z-index: 2; /* 在背景图之上，在左侧面板之下 */
+            pointer-events: none; /* 防止挡住鼠标点击 */
+        }
+        /* =========================================
+           4. 主容器：左侧竖向长方形
+           ========================================= */
+        .container {
+            position: relative;
+            z-index: 10; /* 保证在幻灯片上方 */
+            width: 30vw;           
+            min-width: 360px;      
+            max-width: 500px;      
+            height: 90vh;
+            max-height: 850px;
+            
+            background: rgba(10, 10, 15, 0.75); 
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 50px 35px;
+            
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center;
+            text-align: center;
+            
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2), inset 0 0 40px rgba(0, 255, 255, 0.05);
+            animation: borderPulse 4s infinite alternate, slideInLeft 1s ease-out;
+            overflow: hidden;
+            backdrop-filter: blur(5px); /* 毛玻璃效果 */
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes borderPulse {
+            0% { border-color: rgba(0, 255, 255, 0.2); box-shadow: 0 0 20px rgba(0, 255, 255, 0.1), inset 0 0 20px rgba(0, 255, 255, 0.05); }
+            100% { border-color: rgba(0, 255, 255, 0.8); box-shadow: 0 0 50px rgba(0, 255, 255, 0.5), inset 0 0 50px rgba(0, 255, 255, 0.15); }
+        }
+
+        /* 全屏扫描线特效 */
+        .container::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 255, 255, 0.05) 51%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* 科幻虚线内边框 */
+        .container::after {
+            content: "";
+            position: absolute;
+            top: 15px; left: 15px; right: 15px; bottom: 15px;
+            border: 1px dashed rgba(0, 255, 255, 0.4);
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+        }
+
+        /* =========================================
+           5. 标题文字
+           ========================================= */
+        .title {
+            font-size: 3.5rem; 
+            font-weight: 900;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            line-height: 1.2;
+            
+            background: linear-gradient(90deg, #fff, #00ffff, #00ffaa, #00ffff, #fff);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shineText 3s linear infinite;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+        }
+
+        @keyframes shineText {
+            to { background-position: 200% center; }
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            color: #b0b0c0;
+            letter-spacing: 2px;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        /* 动态流光分割线 */
+        .divider {
+            border: none;
+            height: 2px;
+            width: 80%;
+            margin: 0 auto 40px auto;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.8), transparent);
+            background-size: 200% 100%;
+            animation: dividerMove 2s linear infinite;
+        }
+
+        @keyframes dividerMove {
+            0% { background-position: -100% 0; }
+            100% { background-position: 100% 0; }
+        }
+
+        /* =========================================
+           6. 底部信息
+           ========================================= */
+        .info {
+            font-size: 1.05rem;
+            color: #90909a;
+            letter-spacing: 1px;
+            display: flex;
+            flex-direction: column; 
+            gap: 15px; 
+        }
+
+        .info p {
+            margin: 0;
+            padding: 12px 18px;
+            background: rgba(0, 255, 255, 0.03); 
+            border-left: 3px solid #00ffff; 
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            text-align: left; 
+        }
+
+        .info p:hover {
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+            transform: translateX(5px); 
+        }
+
+        .highlight {
+            color: #00ffaa;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- =========================================
+         👇 幻灯片图片区 👇
+         想要加图，就复制一行 <div class="slide"></div> 
+         把里面的 bg.jpg 换成 bg2.jpg 等。
+         第一张图必须带 active 这个单词。
+         ========================================= -->
+    <div class="bg-slideshow">
+        <div class="slide active" style="background-image: url('bg.jpg');"></div>
+        <div class="slide" style="background-image: url('bg2.png');"></div>
+        <div class="slide" style="background-image: url('bg3.png');"></div>
+        <div class="slide" style="background-image: url('bg4.png');"></div>
+    </div>
+
+    <!-- 左侧面板 -->
+    <div class="container">
+        <div class="content">
+            <h1 class="title">TANK<br>RUN</h1> 
+            <div class="subtitle">牛大了哈哈</div>
+            
+            <hr class="divider">
+            
+            <div class="info">
+                <p>输入 <span class="highlight">!tank</span> 查看实时刷新面板</p>
+                <p>输入 <span class="highlight">!lo</span> 打开其它设置</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================
+         👇 幻灯片切换脚本（不用改） 👇
+         每隔 5000 毫秒（5秒）切换一次。
+         想调快调慢，就改 5000 这个数字。
+         ========================================= -->
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+
+        function nextSlide() {
+            // 隐藏当前图片
+            slides[currentSlide].classList.remove('active');
+            // 切换到下一张（如果是最后一张，就回到第一张）
+            currentSlide = (currentSlide + 1) % slides.length;
+            // 显示新图片
+            slides[currentSlide].classList.add('active');
+        }
+
+        // 启动计时器，每 5 秒切换一次
+        if (slides.length > 1) {
+            setInterval(nextSlide, 4000);
+        }
+    </script>
+</body>
+</html>
